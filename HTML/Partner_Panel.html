@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partner Dashboard | CNSC Extension Services</title>
+
+    <!-- Google Font to match faculty dashboard -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet">
+
+    <!-- Tailwind (same setup as faculty dashboard) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'cnsc': {
+                            50: '#faf5ff',
+                            100: '#f3e8ff',
+                            200: '#e9d5ff',
+                            300: '#d8b4fe',
+                            400: '#c084fc',
+                            500: '#5A2C9D',
+                            600: '#4C2684',
+                            700: '#3d1f6b',
+                            800: '#2e1751',
+                            900: '#1f0f38'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Bootstrap (for existing modals/toasts logic) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <!-- Local styles that align visuals with faculty dashboard -->
+    <link rel="stylesheet" href="../CSS/Partner_Panel.css">
+
+    <style>
+        /* Custom styles for the proposal modal */
+        .proposal-modal .modal-dialog {
+            max-width: 95%;
+            width: 95%;
+            height: 95vh;
+            margin: 2.5vh auto;
+        }
+        .proposal-modal .modal-content {
+            height: 100%;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .proposal-modal .modal-body {
+            padding: 0;
+            height: calc(100% - 60px);
+        }
+        .proposal-modal iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* Profile Section Styles */
+        .profile-section {
+            transition: all 0.3s ease;
+        }
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .profile-info-card {
+            border-left: 4px solid #5A2C9D;
+        }
+        .stat-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+        }
+        .edit-profile-btn {
+            transition: all 0.3s ease;
+        }
+        .edit-profile-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(90, 44, 157, 0.2);
+        }
+        .profile-field {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .profile-field:last-child {
+            border-bottom: none;
+        }
+        .field-label {
+            font-weight: 600;
+            color: #4a5568;
+            min-width: 180px;
+        }
+        .field-value {
+            color: #2d3748;
+            word-break: break-word;
+        }
+        /* Form validation styles */
+        .was-validated .form-control:valid {
+            border-color: #198754;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+        }
+        .was-validated .form-control:invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        }
+        .invalid-feedback {
+            display: none;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: .875em;
+            color: #dc3545;
+        }
+        .was-validated .form-control:invalid ~ .invalid-feedback {
+            display: block;
+        }
+        /* Loading spinner */
+        .spinner-btn {
+            position: relative;
+        }
+        .spinner-btn .spinner-border {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .spinner-btn .btn-text {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 antialiased">
+    <!-- Sidebar Overlay (mobile) -->
+    <div id="sidebar-overlay"
+         class="fixed inset-0 bg-black/50 z-30 lg:hidden hidden"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+           class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40 transition-transform duration-300 flex flex-col">
+        <!-- Logo / Brand -->
+        <div class="p-5 border-b border-gray-100 flex-shrink-0">
+            <div class="flex items-center space-x-3">
+                <img src="../logo.png" alt="CNSC Logo" class="w-10 h-10 object-cover rounded-xl bg-white shadow-sm">
+                <div>
+                    <h1 class="font-bold text-gray-900 text-xs tracking-tight uppercase">CNSC Extension</h1>
+                    <p class="text-xs text-gray-500">Partner Dashboard</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
+            <p class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Main Menu</p>
+
+            <button id="dashboard-link" data-section="dashboard"
+                    class="nav-link sidebar-item active w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-gray-700">
+                <i class="bi bi-speedometer2 mr-3 text-gray-500"></i>
+                <span>Dashboard</span>
+            </button>
+
+            <button id="requests-link" data-section="requests"
+                    class="nav-link sidebar-item w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-gray-600">
+                <i class="bi bi-file-earmark-text mr-3 text-gray-500"></i>
+                <span>Partnership Requests</span>
+            </button>
+
+            <button id="approved-requests-link" data-section="approved-requests"
+                    class="nav-link sidebar-item w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-gray-600">
+                <i class="bi bi-check-circle mr-3 text-gray-500"></i>
+                <span>Approved Requests</span>
+            </button>
+
+            <button id="projects-link" data-section="projects"
+                    class="nav-link sidebar-item w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-gray-600">
+                <i class="bi bi-briefcase mr-3 text-gray-500"></i>
+                <span>Active Projects</span>
+            </button>
+
+            <button id="documents-link" data-section="documents"
+                    class="nav-link sidebar-item w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-gray-600">
+                <i class="bi bi-folder mr-3 text-gray-500"></i>
+                <span>Documents</span>
+            </button>
+
+            <button id="profile-link" data-section="profile"
+                    class="nav-link sidebar-item w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-gray-600">
+                <i class="bi bi-person-circle mr-3 text-gray-500"></i>
+                <span>Organization Profile</span>
+            </button>
+
+            <div class="pt-4 mt-4 border-t border-gray-100">
+                <p class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</p>
+            </div>
+
+            <button id="new-request-link"
+                    class="w-full bg-gradient-to-r from-cnsc-500 to-cnsc-600 hover:from-cnsc-600 hover:to-cnsc-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-md shadow-cnsc-500/20 hover:shadow-lg hover:shadow-cnsc-500/30 flex items-center justify-center gap-2">
+                <i class="bi bi-plus-circle"></i>
+                <span>New Request</span>
+            </button>
+        </nav>
+
+        <!-- Footer / Logout -->
+        <div class="flex-shrink-0 p-3 border-t border-gray-100 bg-gray-50/60">
+            <button id="logoutBtn"
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-64 min-h-screen transition-all duration-300">
+        <!-- Header (matches faculty style) -->
+        <header class="bg-white border-b border-gray-100 sticky top-0 z-20">
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <!-- Mobile menu toggle -->
+                    <button id="menu-toggle"
+                            class="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                            aria-label="Toggle menu">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <div>
+                        <h1 id="sectionTitle" class="text-xl font-bold text-gray-900">Partner Dashboard</h1>
+                        <p id="userWelcome" class="text-sm text-gray-500">Welcome back!</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div id="content-area" class="p-4 sm:p-6 space-y-6">
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="section-content">
+                <!-- Welcome Card -->
+                <div class="card mb-4">
+                    <div class="card-header bg-cnsc-500 text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Welcome, <span id="orgNameDisplay">Partner Organization</span>!</h5>
+                        <span class="badge bg-light text-cnsc-700">Partner</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-1">Organization Type:
+                            <span id="orgTypeDisplay" class="badge bg-secondary"></span>
+                        </p>
+                        <p class="mb-1">Contact Email:
+                            <span id="orgEmailDisplay" class="font-medium"></span>
+                        </p>
+                        <p class="mb-0">Status:
+                            <span id="orgStatusDisplay" class="badge bg-success">Active</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quick Stats (styled like faculty stat cards) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Requests</p>
+                            <h3 id="totalRequestsCount" class="mt-2 text-2xl font-bold text-gray-900">0</h3>
+                        </div>
+                        <div class="w-11 h-11 rounded-lg bg-purple-50 flex items-center justify-center">
+                            <i class="bi bi-file-earmark-text text-cnsc-500 fs-4"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Approved</p>
+                            <h3 id="approvedRequestsCount" class="mt-2 text-2xl font-bold text-gray-900">0</h3>
+                        </div>
+                        <div class="w-11 h-11 rounded-lg bg-emerald-50 flex items-center justify-center">
+                            <i class="bi bi-check-circle text-emerald-500 fs-4"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Pending</p>
+                            <h3 id="pendingRequestsCount" class="mt-2 text-2xl font-bold text-gray-900">0</h3>
+                        </div>
+                        <div class="w-11 h-11 rounded-lg bg-amber-50 flex items-center justify-center">
+                            <i class="bi bi-clock text-amber-500 fs-4"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Active Projects</p>
+                            <h3 id="activeProjectsCount" class="mt-2 text-2xl font-bold text-gray-900">0</h3>
+                        </div>
+                        <div class="w-11 h-11 rounded-lg bg-sky-50 flex items-center justify-center">
+                            <i class="bi bi-briefcase text-sky-500 fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Requests -->
+                <div class="card mb-4">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Partnership Requests</h5>
+                        <button class="btn btn-light btn-sm" id="refresh-recent-requests">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentRequests" class="list-group list-group-flush">
+                            <div class="list-group-item text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading recent requests...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partnership Requests Section -->
+            <div id="requests-section" class="section-content d-none">
+                <div class="card">
+                    <div class="card-header bg-cnsc-500 text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Partnership Requests</h5>
+                        <div>
+                            <button class="btn btn-light btn-sm me-2" id="new-request-btn">
+                                <i class="bi bi-plus-circle"></i> New Request
+                            </button>
+                            <button class="btn btn-light btn-sm" id="refresh-requests-btn">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filter Options -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <select class="form-select" id="statusFilter">
+                                    <option value="">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="reviewed">Reviewed</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="searchRequests" placeholder="Search requests...">
+                            </div>
+                        </div>
+
+                        <!-- Requests Table -->
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Request ID</th>
+                                        <th>Subject</th>
+                                        <th>Date Submitted</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="requestsTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center">
+                                            <div class="spinner-border" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p class="mt-2">Loading requests...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approved Requests Section (NEW) -->
+            <div id="approved-requests-section" class="section-content d-none">
+                <div class="card">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Approved Partnership Requests
+                        </h5>
+                        <div>
+                            <button class="btn btn-light btn-sm" id="refresh-approved-requests-btn">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Approved Requests Info -->
+                        <div class="alert alert-success mb-4">
+                            <i class="bi bi-info-circle me-2"></i>
+                            These are partnership requests that have been approved by the faculty. You can submit a proposal for any of these approved requests.
+                        </div>
+
+                        <!-- Search and Filter -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" id="searchApprovedRequests" placeholder="Search approved requests...">
+                            </div>
+                            <div class="col-md-6">
+                                <select class="form-select" id="orgTypeFilter">
+                                    <option value="">All Organization Types</option>
+                                    <option value="Government">Government</option>
+                                    <option value="NGO">NGO</option>
+                                    <option value="Private Company">Private Company</option>
+                                    <option value="Academic">Academic</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Approved Requests Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Request ID</th>
+                                        <th>Organization</th>
+                                        <th>Subject</th>
+                                        <th>Collaboration Areas</th>
+                                        <th>Submitted Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="approvedRequestsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center">
+                                            <div class="spinner-border text-success" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p class="mt-2">Loading approved requests...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- No Approved Requests Message -->
+                        <div id="noApprovedRequestsMessage" class="text-center d-none">
+                            <i class="bi bi-check-circle fs-1 text-muted"></i>
+                            <h5 class="mt-3">No approved requests found</h5>
+                            <p class="text-muted">Approved partnership requests will appear here.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Projects Section -->
+            <div id="projects-section" class="section-content d-none">
+                <div class="card">
+                    <div class="card-header bg-emerald-500 text-white">
+                        <h5 class="mb-0">Active Projects</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="activeProjects">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading active projects...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Section -->
+            <div id="documents-section" class="section-content d-none">
+                <div class="card">
+                    <div class="card-header bg-sky-500 text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Documents & Attachments</h5>
+                        <div>
+                            <button class="btn btn-light btn-sm" id="refresh-documents-btn">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Documents Filter and Search -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <select class="form-select" id="documentFilter">
+                                    <option value="">All Categories</option>
+                                    <option value="partnership_request">Partnership Requests</option>
+                                    <option value="moa">MOA Documents</option>
+                                    <option value="project">Project Files</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="searchDocuments" placeholder="Search documents...">
+                            </div>
+                        </div>
+
+                        <!-- Documents Summary -->
+                        <div class="alert alert-light mb-3" id="documentsCount">
+                            <i class="bi bi-folder"></i>
+                            <strong>0</strong> documents found
+                        </div>
+
+                        <!-- No Documents Message -->
+                        <div id="noDocumentsMessage" class="text-center d-none">
+                            <i class="bi bi-folder-x fs-1 text-muted"></i>
+                            <h5 class="mt-3">No documents found</h5>
+                            <p class="text-muted">Documents will appear here after you submit partnership requests.</p>
+                        </div>
+
+                        <!-- Documents Table -->
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Document Name</th>
+                                        <th>Type</th>
+                                        <th>Size</th>
+                                        <th>Request ID</th>
+                                        <th>Uploaded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documentsTableBody">
+                                    <!-- Documents will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization Profile Section (UPDATED) -->
+            <div id="profile-section" class="section-content d-none">
+                <div class="profile-section">
+                    <!-- Profile Header -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-cnsc-500 text-white d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0">
+                                    <i class="bi bi-building me-2"></i>
+                                    Organization Profile
+                                </h5>
+                                <small class="text-cnsc-100">Manage your organization's information and settings</small>
+                            </div>
+                            <div>
+                                <button id="refresh-profile-btn" class="btn btn-light btn-sm me-2">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 text-center">
+                                    <div class="mb-3">
+                                        <div class="position-relative d-inline-block">
+                                            <div id="orgAvatar" class="rounded-circle bg-cnsc-100 text-cnsc-600 d-flex align-items-center justify-content-center"
+                                                 style="width: 120px; height: 120px; font-size: 48px; margin: 0 auto;">
+                                                <i class="bi bi-building"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <span id="orgStatusBadge" class="badge bg-success p-2">
+                                            <i class="bi bi-check-circle me-1"></i> Active
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-9">
+                                    <h3 id="orgNameDisplayProfile" class="fw-bold mb-2">Organization Name</h3>
+                                    <p class="text-muted mb-4">
+                                        <i class="bi bi-tag me-1"></i>
+                                        <span id="orgTypeDisplayProfile" class="fw-medium">Organization Type</span>
+                                        •
+                                        <i class="bi bi-calendar me-1 ms-2"></i>
+                                        Member since <span id="memberSince" class="fw-medium">2024</span>
+                                    </p>
+
+                                    <!-- Quick Stats -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-3">
+                                            <div class="stat-card-small bg-light p-3 rounded text-center">
+                                                <div class="text-cnsc-600 fs-5 fw-bold" id="totalProjectsCount">0</div>
+                                                <div class="text-muted small">Total Projects</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card-small bg-light p-3 rounded text-center">
+                                                <div class="text-success fs-5 fw-bold" id="activeProjectsCountProfile">0</div>
+                                                <div class="text-muted small">Active Projects</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card-small bg-light p-3 rounded text-center">
+                                                <div class="text-primary fs-5 fw-bold" id="approvedRequestsCountProfile">0</div>
+                                                <div class="text-muted small">Approved Requests</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card-small bg-light p-3 rounded text-center">
+                                                <div class="text-warning fs-5 fw-bold" id="pendingRequestsCountProfile">0</div>
+                                                <div class="text-muted small">Pending Requests</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organization Details -->
+                    <div class="row">
+                        <!-- Left Column: Organization Information -->
+                        <div class="col-lg-8 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="bi bi-info-circle me-2 text-cnsc-500"></i>
+                                        Organization Information
+                                    </h6>
+                                    <span class="badge bg-light text-dark">
+                                        <i class="bi bi-shield-check me-1 text-success"></i>
+                                        Verified
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div id="orgDetailsContent">
+                                        <!-- Organization details will be loaded here -->
+                                        <div class="text-center py-5">
+                                            <div class="spinner-border text-cnsc-500" role="status">
+                                                <span class="visually-hidden">Loading organization details...</span>
+                                            </div>
+                                            <p class="mt-3 text-muted">Loading organization details...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Contact Information & Actions -->
+                        <div class="col-lg-4 mb-4">
+                            <!-- Contact Information -->
+                            <div class="card mb-4">
+                                <div class="card-header bg-white border-bottom">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="bi bi-telephone me-2 text-cnsc-500"></i>
+                                        Contact Information
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="contactInfoContent">
+                                        <!-- Contact info will be loaded here -->
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-cnsc-500" role="status">
+                                                <span class="visually-hidden">Loading contact information...</span>
+                                            </div>
+                                            <p class="mt-2 small text-muted">Loading contact information...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="card">
+                                <div class="card-header bg-white border-bottom">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="bi bi-lightning me-2 text-cnsc-500"></i>
+                                        Quick Actions
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button id="new-partnership-btn" class="btn btn-cnsc mb-2">
+                                            <i class="bi bi-plus-circle me-2"></i>
+                                            New Partnership Request
+                                        </button>
+                                        <button id="view-documents-btn" class="btn btn-outline-cnsc mb-2">
+                                            <i class="bi bi-folder me-2"></i>
+                                            View Documents
+                                        </button>
+                                        <button id="view-projects-btn" class="btn btn-outline-cnsc mb-2">
+                                            <i class="bi bi-briefcase me-2"></i>
+                                            View Projects
+                                        </button>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Partnership History -->
+                    <div class="card">
+                        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="bi bi-clock-history me-2 text-cnsc-500"></i>
+                                Partnership History
+                            </h6>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                        data-bs-toggle="dropdown">
+                                    <i class="bi bi-filter me-1"></i> Filter
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" data-filter="all">All Partnerships</a></li>
+                                    <li><a class="dropdown-item" href="#" data-filter="active">Active Only</a></li>
+                                    <li><a class="dropdown-item" href="#" data-filter="completed">Completed</a></li>
+                                    <li><a class="dropdown-item" href="#" data-filter="year">This Year</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="partnershipHistoryContent">
+                                <!-- Partnership history will be loaded here -->
+                                <div class="text-center py-4">
+                                    <div class="spinner-border spinner-border-sm text-cnsc-500" role="status">
+                                        <span class="visually-hidden">Loading partnership history...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Loading partnership history...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Request Details Modal -->
+    <div class="modal fade" id="requestDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Partnership Request Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="requestDetailsContent">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Partnership Request Modal -->
+    <div class="modal fade" id="newRequestModal" tabindex="-1" aria-labelledby="newRequestModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen-lg-down modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="newRequestModalLabel">
+                        <i class="bi bi-plus-circle"></i> New Partnership Request
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 120px); overflow-y: auto;">
+                    <iframe id="partnerFormIframe" src="partner-form-modal.html" style="width: 100%; height: 100%; min-height: 600px; border: none;"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Proposal Modal - Updated to be larger -->
+    <div class="modal fade proposal-modal" id="submitProposalModal" tabindex="-1" aria-labelledby="submitProposalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white d-flex align-items-center">
+                    <h5 class="modal-title mb-0" id="submitProposalModalLabel">
+                        <i class="bi bi-send-check me-2"></i> Submit Project Proposal
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <iframe id="proposalFormIframe" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-cnsc-500 text-white">
+                    <h5 class="modal-title" id="editProfileModalLabel">
+                        <i class="bi bi-pencil-square me-2"></i> Edit Organization Profile
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProfileForm" class="needs-validation" novalidate>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editOrgName" class="form-label">Organization Name *</label>
+                                <input type="text" class="form-control" id="editOrgName" required>
+                                <div class="invalid-feedback">
+                                    Please enter organization name.
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editOrgType" class="form-label">Organization Type *</label>
+                                <select class="form-select" id="editOrgType" required>
+                                    <option value="">Select type...</option>
+                                    <option value="Government">Government</option>
+                                    <option value="NGO">Non-Governmental Organization (NGO)</option>
+                                    <option value="Private Company">Private Company</option>
+                                    <option value="Academic">Academic Institution</option>
+                                    <option value="Community-Based">Community-Based Organization</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select organization type.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editOrgAddress" class="form-label">Organization Address *</label>
+                            <textarea class="form-control" id="editOrgAddress" rows="2" required></textarea>
+                            <div class="invalid-feedback">
+                                Please enter organization address.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editOrgDescription" class="form-label">Organization Description</label>
+                            <textarea class="form-control" id="editOrgDescription" rows="3"
+                                      placeholder="Brief description of your organization's mission and activities"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editWebsite" class="form-label">Website</label>
+                                <input type="url" class="form-control" id="editWebsite" placeholder="https://example.com">
+                                <div class="invalid-feedback">
+                                    Please enter a valid URL (e.g., https://example.com).
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editYearEstablished" class="form-label">Year Established</label>
+                                <input type="number" class="form-control" id="editYearEstablished"
+                                       min="1900" max="2024" placeholder="e.g., 2010">
+                                <div class="invalid-feedback">
+                                    Please enter a valid year between 1900 and 2024.
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="mt-4 mb-3 fw-bold">Primary Contact Person</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editContactName" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="editContactName" required>
+                                <div class="invalid-feedback">
+                                    Please enter contact person name.
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editContactPosition" class="form-label">Position *</label>
+                                <input type="text" class="form-control" id="editContactPosition" required>
+                                <div class="invalid-feedback">
+                                    Please enter contact person position.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editContactEmail" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="editContactEmail" required>
+                                <div class="invalid-feedback">
+                                    Please enter a valid email address.
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editContactPhone" class="form-label">Phone Number *</label>
+                                <input type="tel" class="form-control" id="editContactPhone" required>
+                                <div class="invalid-feedback">
+                                    Please enter a valid phone number.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editSecondaryContacts" class="form-label">Secondary Contacts (Optional)</label>
+                            <textarea class="form-control" id="editSecondaryContacts" rows="2"
+                                      placeholder="Additional contacts or departments (one per line)"></textarea>
+                            <div class="form-text">List additional contacts, one per line</div>
+                        </div>
+
+                        <h6 class="mt-4 mb-3 fw-bold">Areas of Interest & Expertise</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Select areas where your organization has expertise:</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="Education" id="expertiseEducation">
+                                        <label class="form-check-label" for="expertiseEducation">
+                                            Education & Training
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="Research" id="expertiseResearch">
+                                        <label class="form-check-label" for="expertiseResearch">
+                                            Research & Development
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="Community" id="expertiseCommunity">
+                                        <label class="form-check-label" for="expertiseCommunity">
+                                            Community Development
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="Environment" id="expertiseEnvironment">
+                                        <label class="form-check-label" for="expertiseEnvironment">
+                                            Environmental Conservation
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="Health" id="expertiseHealth">
+                                        <label class="form-check-label" for="expertiseHealth">
+                                            Health & Wellness
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="Technology" id="expertiseTechnology">
+                                        <label class="form-check-label" for="expertiseTechnology">
+                                            Technology & Innovation
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editAdditionalInfo" class="form-label">Additional Information</label>
+                            <textarea class="form-control" id="editAdditionalInfo" rows="3"
+                                      placeholder="Any other relevant information about your organization"></textarea>
+                        </div>
+
+                        <div class="alert alert-info mt-4">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Fields marked with * are required. Profile updates may require verification.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-cnsc" id="saveProfileBtn">
+                        <i class="bi bi-check-circle me-1"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Avatar Modal -->
+    <div class="modal fade" id="changeAvatarModal" tabindex="-1" aria-labelledby="changeAvatarModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-cnsc-500 text-white">
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-4">
+                        <div id="avatarPreview" class="rounded-circle bg-cnsc-100 text-cnsc-600 d-flex align-items-center justify-content-center mx-auto"
+                             style="width: 150px; height: 150px; font-size: 60px;">
+                            <i class="bi bi-building"></i>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Choose Avatar Style:</label>
+                        <div class="d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-outline-cnsc avatar-option" data-style="building">
+                                <i class="bi bi-building fs-4"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-cnsc avatar-option" data-style="people">
+                                <i class="bi bi-people fs-4"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-cnsc avatar-option" data-style="globe">
+                                <i class="bi bi-globe fs-4"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-cnsc avatar-option" data-style="briefcase">
+                                <i class="bi bi-briefcase fs-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Or Upload Custom Image:</label>
+                        <input type="file" class="form-control" id="avatarUpload" accept="image/*" style="display: none;">
+                        <button type="button" class="btn btn-outline-secondary w-100" id="uploadAvatarBtn">
+                            <i class="bi bi-upload me-2"></i> Upload Image
+                        </button>
+                        <div class="form-text small mt-1">Max size: 2MB, JPG/PNG format</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-cnsc" id="saveAvatarBtn">Save Avatar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- JSZip for ZIP file downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Database Connection -->
+    <script src="../JS/db_connection.js"></script>
+
+    <!-- Partner Panel JavaScript -->
+    <script src="../JS/Partner_Panel.js"></script>
+    <script src="../JS/CancelRequest.js"></script>
+    <script src="../JS/EditRequest.js"></script>
+    <!-- Edit Partner Profile JavaScript -->
+    <script type="module">
+        // Import functions from EditPartnerProfile.js
+        import {
+            initializeProfileSection,
+            loadOrganizationProfile,
+            showNotification
+        } from '../JS/EditPartnerProfile.js';
+
+        // Initialize profile section when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize profile section
+            initializeProfileSection();
+
+            // Handle logout using the function defined in Partner_Panel.js
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async function() {
+                    try {
+                        if (typeof window.logout === 'function') {
+                            window.logout();
+                        } else {
+                            throw new Error('logout function is not available');
+                        }
+                    } catch (error) {
+                        console.error('Error during logout:', error);
+                        showNotification('Error during logout: ' + error.message, 'error');
+                    }
+                });
+            }
+
+            // Ensure sidebar navigation is wired even if Partner_Panel.js initialization fails
+            const navLinks = document.querySelectorAll('.nav-link[data-section]');
+            if (navLinks.length > 0) {
+                navLinks.forEach(link => {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const section = this.getAttribute('data-section');
+
+                        // Prefer the global showSection from Partner_Panel.js if available
+                        if (typeof window.showSection === 'function') {
+                            window.showSection(section);
+                            return;
+                        }
+
+                        // Fallback: simple section toggling if showSection is not defined
+                        document.querySelectorAll('.section-content').forEach(sec => {
+                            sec.classList.add('d-none');
+                        });
+                        const target = document.getElementById(section + '-section');
+                        if (target) {
+                            target.classList.remove('d-none');
+                        }
+
+                        document.querySelectorAll('.nav-link').forEach(nav => {
+                            nav.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                    });
+                });
+            }
+
+            // Ensure "New Request" buttons always open the modal
+            const newRequestTriggers = [
+                document.getElementById('new-request-link'),
+                document.getElementById('new-request-btn')
+            ].filter(Boolean);
+
+            if (newRequestTriggers.length > 0) {
+                newRequestTriggers.forEach(btn => {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+
+                        // Prefer global helper from Partner_Panel.js if available
+                        if (typeof window.showNewRequestModal === 'function') {
+                            window.showNewRequestModal();
+                            return;
+                        }
+
+                        // Fallback: open the modal directly
+                        const modalEl = document.getElementById('newRequestModal');
+                        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                            modal.show();
+                        } else {
+                            console.error('Cannot open New Request modal: Bootstrap or modal element not available');
+                        }
+                    });
+                });
+            }
+
+            // Load initial profile if on profile section
+            if (!document.getElementById('profile-section').classList.contains('d-none')) {
+                loadOrganizationProfile();
+            }
+
+            console.log("✅ Partner dashboard initialized");
+        });
+
+        // Handle messages from iframes
+        window.addEventListener('message', function(event) {
+            const message = event.data;
+            console.log('Received message from iframe:', message);
+
+            if (message && message.type === 'partnershipSubmitted' && message.success) {
+                console.log('Partnership submitted successfully, closing modal...');
+
+                // Close the modal
+                const modalElement = document.getElementById('newRequestModal');
+                if (modalElement) {
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) modal.hide();
+                }
+
+                showNotification('Partnership request submitted successfully!', 'success');
+
+                // Refresh profile
+                loadOrganizationProfile();
+            }
+
+            if (message && message.type === 'proposalSubmitted') {
+                console.log('Proposal submitted successfully:', message);
+
+                // Close the proposal modal
+                const proposalModal = bootstrap.Modal.getInstance(document.getElementById('submitProposalModal'));
+                if (proposalModal) proposalModal.hide();
+
+                showNotification(`Proposal submitted successfully! Submission ID: PRP-${message.submissionId.toString().padStart(4, '0')}`, 'success');
+            }
+        });
+    </script>
+
+    <script>
+        // Handle messages from the iframe (partner-form-modal.html)
+        window.addEventListener('message', function(event) {
+            const message = event.data;
+            console.log('Received message from iframe:', message);
+
+            if (message && message.type === 'partnershipSubmitted' && message.success) {
+                console.log('Partnership submitted successfully, closing modal...');
+
+                // Close the modal
+                const modalElement = document.getElementById('newRequestModal');
+                if (modalElement) {
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+                }
+
+                // Show success message
+                showNotification('Partnership request submitted successfully!');
+
+                // Refresh the dashboard
+                if (typeof window.refreshDashboard === 'function') {
+                    window.refreshDashboard();
+                }
+
+                // If on requests section, reload requests too
+                if (!document.getElementById('requests-section').classList.contains('d-none')) {
+                    if (typeof window.loadAllRequests === 'function') {
+                        window.loadAllRequests();
+                    }
+                }
+            }
+
+            // Handle proposal submission success
+            if (message && message.type === 'proposalSubmitted') {
+                console.log('Proposal submitted successfully:', message);
+
+                // Close the proposal modal
+                const proposalModal = bootstrap.Modal.getInstance(document.getElementById('submitProposalModal'));
+                if (proposalModal) {
+                    proposalModal.hide();
+                }
+
+                // Show success message
+                showNotification(`Proposal submitted successfully! Submission ID: PRP-${message.submissionId.toString().padStart(4, '0')}`, 'success');
+
+                // Refresh the approved requests section
+                if (typeof loadApprovedRequests === 'function') {
+                    loadApprovedRequests();
+                }
+            }
+        });
+
+        // Initialize Partner Panel when db_connection.js is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if db_connection.js loaded properly
+            if (typeof window.supabaseAuth !== 'undefined') {
+                console.log("✅ db_connection.js loaded successfully");
+            } else {
+                console.error("❌ db_connection.js not loaded properly");
+            }
+        });
+    </script>
+</body>
+</html>
